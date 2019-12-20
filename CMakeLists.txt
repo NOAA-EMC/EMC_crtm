@@ -69,7 +69,7 @@ include_directories( ${CRTM_DIR} )
 
 set(CMAKE_INCLUDE_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/include")
 set_target_properties(${crtm} PROPERTIES Fortran_MODULE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/include")
-target_include_directories(${crtm} PUBLIC "${CMAKE_CURRENTT_BINARY_DIR}/include")
+target_include_directories(${crtm} PUBLIC "${CMAKE_CURRENT_BINARY_DIR}/include")
 
 install(TARGETS ${crtm}
         RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/bin
