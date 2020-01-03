@@ -1352,12 +1352,12 @@ CONTAINS
 !:sdoc-:
 !--------------------------------------------------------------------------------
 
-  ELEMENTAL SUBROUTINE Destroy( self )
+  SUBROUTINE Destroy( self )
     CLASS(CRTM_CloudCover_type), INTENT(OUT) :: self
     self%Is_Allocated = .FALSE.
   END SUBROUTINE Destroy
 
-  ELEMENTAL SUBROUTINE iVar_Destroy( self )
+  SUBROUTINE iVar_Destroy( self )
     CLASS(iVar_type), INTENT(OUT) :: self
     self%Is_Allocated = .FALSE.
   END SUBROUTINE iVar_Destroy
@@ -1419,7 +1419,7 @@ CONTAINS
 !:sdoc-:
 !--------------------------------------------------------------------------------
 
-  ELEMENTAL SUBROUTINE Create( &
+  SUBROUTINE Create( &
     self         , &
     n_Layers     , &
     n_Clouds     , & 
@@ -1474,7 +1474,7 @@ CONTAINS
   END SUBROUTINE Create
 
 
-  ELEMENTAL SUBROUTINE iVar_Create( &
+  SUBROUTINE iVar_Create( &
     self         , &
     n_Layers     , &
     n_Clouds     , &  
