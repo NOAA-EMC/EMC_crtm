@@ -1,13 +1,14 @@
-cmake_minimum_required(VERSION 2.6)
-project(crtm)
-set(VERSION v2.3.0)
-set(crtm ${CMAKE_PROJECT_NAME}_${VERSION})
+cmake_minimum_required(VERSION 3.16)
+project(crtm VERSION 2.3.0)
+set(${PROJECT_NAME}_VERSION ${PROJECT_VERSION} CACHE INTERNAL "${PROJECT_NAME} version number")
 enable_language (Fortran)
+
 if (NOT CMAKE_BUILD_TYPE)
-    set (CMAKE_BUILD_TYPE RELEASE CACHE STRING
-        "Choose the type of build, options are: PRODUCTION Debug Release."
-        FORCE)
+  set (CMAKE_BUILD_TYPE RELEASE CACHE STRING
+    "Choose the type of build, options are: PRODUCTION Debug Release."
+    FORCE)
 endif()
+
 if(CMAKE_CXX_COMPILER_ID STREQUAL "Intel")
   message("setting intel true")
   set(IntelComp true )
@@ -16,25 +17,20 @@ elseif(CMAKE_CXX_COMPILER_ID MATCHES "GNU*" OR CMAKE_CXX_COMPILER_ID MATCHES "Cl
 elseif(CMAKE_CXX_COMPILER_ID MATCHES "pgc*")
   set(PGIComp true )
 endif()
+
 STRING(COMPARE EQUAL ${CMAKE_BUILD_TYPE} "RelWithDebInfo" BUILD_RELEASE)
 if(NOT BUILD_RELEASE)
   STRING(COMPARE EQUAL ${CMAKE_BUILD_TYPE} "RELEASE" BUILD_RELEASE)
 endif()
 STRING(COMPARE EQUAL ${CMAKE_BUILD_TYPE} "PRODUCTION" BUILD_PRODUCTION)
 STRING(COMPARE EQUAL ${CMAKE_BUILD_TYPE} "DEBUG" BUILD_DEBUG)
-if( (BUILD_RELEASE) OR (BUILD_PRODUCTION) )
+
+if( (BUILD_RELEASE) OR (BUILD_PRODUCTION))
   if(IntelComp)
-    message("setting intel flags")
-    set(CMAKE_C_FLAGS "-O3 -DUNDERSCORE -DLINUX " CACHE INTERNAL "" )
-    set(CRTM_Fortran_FLAGS " -O3 -convert big_endian -free -assume byterecl -fp-model source -traceback ${HOST_FLAG} " CACHE INTERNAL "" )
+    set(fortran_flags "-O3" "-convert big_endian" "-free"
+      "-assume byterecl" "-fp-model source" "-traceback" "${HOST_FLAG}")
   elseif(GNUComp)
-    message("setting gnu flags")
-    if(APPLE)
-      set(CMAKE_C_FLAGS "-O3 -DUNDERSCORE -DAPPLE " CACHE INTERNAL "" )
-    elseif(UNIX)
-      set(CMAKE_C_FLAGS "-O3 -DUNDERSCORE -DLINUX " CACHE INTERNAL "" )
-    endif(APPLE)
-    set(CRTM_Fortran_FLAGS " -O3 -fconvert=big-endian -ffree-form -fbacktrace ${HOST_FLAG} " CACHE INTERNAL "" )
+      set(fortran_flags "-O3" "-fconvert=big-endian" "-ffree-form" "-fbacktrace" "${HOST_FLAG}")
   else()
     message("unknown compiler!")
     exit()
@@ -42,38 +38,27 @@ if( (BUILD_RELEASE) OR (BUILD_PRODUCTION) )
 endif()
 
 set(CRTM_DIR ${CMAKE_CURRENT_SOURCE_DIR})
-message("hey crtmdir is ${CRTM_DIR}")
-file(GLOB CRTM_FPP_SRC ${CRTM_DIR}/*.fpp)
-set(CRTM_PP_SRC "")
-FOREACH( fppfile ${CRTM_FPP_SRC} )
-    get_filename_component(SRC_WITHOUT_EXT ${fppfile} NAME_WE)
-    set(F_SRC_FILE "${SRC_WITHOUT_EXT}.F")
-   ADD_CUSTOM_COMMAND(
-     OUTPUT ${CMAKE_CURRENT_SOURCE_DIR}/${F_SRC_FILE}
-     PRE_BUILD
-     COMMAND ${CMAKE_COMMAND} -E copy ${fppfile} ${CMAKE_CURRENT_SOURCE_DIR}/${F_SRC_FILE}
-     DEPENDS ${fppfile}
-   )
-   list(APPEND CRTM_PP_SRC "${F_SRC_FILE}")
-endforeach()
-ADD_CUSTOM_TARGET(copy ALL DEPENDS ${CRTM_PP_SRC} )
-file(GLOB CRTM_SRC ${CRTM_DIR}/*.f90 )
-set_source_files_properties( ${CRTM_PP_SRC} COMPILE_FLAGS ${CRTM_Fortran_FLAGS} )
-set_source_files_properties( ${CRTM_SRC} COMPILE_FLAGS ${CRTM_Fortran_FLAGS} )
-  
-set(CMAKE_Fortran_FLAGS_RELEASE "")
-add_library( ${crtm} STATIC ${CRTM_SRC} ${CRTM_PP_SRC} )
-set(CMAKE_INCLUDE_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/include")
-set_target_properties( ${crtm} PROPERTIES Fortran_MODULE_DIRECTORY ${CMAKE_INCLUDE_OUTPUT_DIRECTORY} )
-include_directories( ${CRTM_DIR} )
+file(GLOB CRTM_SRC ${CRTM_DIR}/*.f90 ${CRTM_DIR}/*.fpp)
 
-set(CMAKE_INCLUDE_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/include")
-set_target_properties(${crtm} PROPERTIES Fortran_MODULE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/include")
-target_include_directories(${crtm} PUBLIC "${CMAKE_CURRENT_BINARY_DIR}/include")
+set(lib_name ${PROJECT_NAME})
+set(versioned_lib_name ${PROJECT_NAME}_v${PROJECT_VERSION})
 
-install(TARGETS ${crtm}
-        RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/bin
-        LIBRARY DESTINATION ${CMAKE_INSTALL_PREFIX}/lib
-        ARCHIVE DESTINATION ${CMAKE_INSTALL_PREFIX}/lib) 
-install(DIRECTORY ${CMAKE_INCLUDE_OUTPUT_DIRECTORY}/ DESTINATION include )
+add_library(${lib_name} STATIC ${CRTM_SRC})
+set_target_properties(${lib_name} PROPERTIES OUTPUT_NAME "${versioned_lib_name}")
 
+target_compile_options(${lib_name} PRIVATE ${fortran_flags})
+
+set(module_dir "${PROJECT_BINARY_DIR}/include")
+set_target_properties(${lib_name} PROPERTIES Fortran_MODULE_DIRECTORY ${module_dir})
+
+target_include_directories(${lib_name} PUBLIC
+  $<BUILD_INTERFACE:${module_dir}>
+  $<INSTALL_INTERFACE:${CMAKE_INSTALL_PREFIX}/include>)
+
+install(TARGETS ${lib_name}
+  EXPORT ${PROJECT_NAME}-config
+  RUNTIME DESTINATION bin
+  LIBRARY DESTINATION lib
+  ARCHIVE DESTINATION lib) 
+install(DIRECTORY ${module_dir} DESTINATION ${CMAKE_INSTALL_PREFIX})
+install(EXPORT ${PROJECT_NAME}-config DESTINATION ${CMAKE_INSTALL_PREFIX})
