@@ -169,7 +169,7 @@ UnitTest_Define.f90
 Zeeman_Input_Define.f90
 Zeeman_Utility.f90
 iAtm_Define.f90
-CRTM_Module.F)
+CRTM_Module.F90)
 
 if(CMAKE_Fortran_COMPILER_ID MATCHES "^(Intel)$")
   set(CMAKE_Fortran_FLAGS
@@ -178,7 +178,7 @@ if(CMAKE_Fortran_COMPILER_ID MATCHES "^(Intel)$")
   set(CMAKE_Fortran_FLAGS_RELEASE "-O3 -ip -unroll -inline")
   set(CMAKE_Fortran_FLAGS_DEBUG "-O0 -check bounds -warn -heap-arrays -fpe-all=0 -fpe:0 -ftz -check all")
 elseif(CMAKE_Fortran_COMPILER_ID MATCHES "^(GNU|Clang|AppleClang)$")
-  set(CMAKE_Fortran_FLAGS "-g -fbacktrace -fconvert=big-endian -ffree-form")
+  set(CMAKE_Fortran_FLAGS "-g -fbacktrace -fconvert=big-endian")
   set(CMAKE_Fortran_FLAGS_RELEASE "-O3 -funroll-all-loops -finline-functions")
   set(CMAKE_Fortran_FLAGS_DEBUG "-O0 -fcheck=bounds -ffpe-trap=invalid,zero,overflow")
 endif()
