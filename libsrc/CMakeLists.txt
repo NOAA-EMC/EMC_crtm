@@ -184,20 +184,50 @@ elseif(CMAKE_Fortran_COMPILER_ID MATCHES "^(GNU|Clang|AppleClang)$")
 endif()
 
 set(lib_name ${PROJECT_NAME})
-set(versioned_lib_name ${PROJECT_NAME}_v${PROJECT_VERSION})
 set(module_dir ${CMAKE_CURRENT_BINARY_DIR}/include)
 
 add_library(${lib_name} STATIC ${crtm_src_files})
-set_target_properties(${lib_name} PROPERTIES OUTPUT_NAME ${versioned_lib_name})
+add_library(${PROJECT_NAME}::${lib_name} ALIAS ${lib_name})
+
 set_target_properties(${lib_name} PROPERTIES Fortran_MODULE_DIRECTORY ${module_dir})
-target_include_directories(${lib_name} PUBLIC
+target_include_directories(${lib_name} INTERFACE
   $<BUILD_INTERFACE:${module_dir}>
   $<INSTALL_INTERFACE:${CMAKE_INSTALL_PREFIX}/include>)
 
-install(TARGETS ${lib_name}
-  EXPORT ${PROJECT_NAME}-config
-  LIBRARY DESTINATION lib
-  ARCHIVE DESTINATION lib)
 install(DIRECTORY ${module_dir} DESTINATION ${CMAKE_INSTALL_PREFIX})
 
-install(EXPORT ${PROJECT_NAME}-config DESTINATION ${CMAKE_INSTALL_PREFIX})
+install(
+  TARGETS ${lib_name}
+  EXPORT ${PROJECT_NAME}Exports
+  RUNTIME DESTINATION bin
+  LIBRARY DESTINATION lib
+  ARCHIVE DESTINATION lib)
+
+### Package config
+include(CMakePackageConfigHelpers)
+set(CONFIG_INSTALL_DESTINATION lib/cmake/${PROJECT_NAME})
+
+export(EXPORT ${PROJECT_NAME}Exports
+  NAMESPACE ${PROJECT_NAME}::
+  FILE ${PROJECT_NAME}-targets.cmake)
+
+# crtm-config.cmake
+configure_package_config_file(
+  ${CMAKE_SOURCE_DIR}/cmake/PackageConfig.cmake.in ${CMAKE_BINARY_DIR}/${PROJECT_NAME}-config.cmake
+  INSTALL_DESTINATION ${CONFIG_INSTALL_DESTINATION})
+install(FILES ${CMAKE_BINARY_DIR}/${PROJECT_NAME}-config.cmake
+  DESTINATION ${CONFIG_INSTALL_DESTINATION})
+
+# crtm-config-version.cmake
+write_basic_package_version_file(
+  ${CMAKE_BINARY_DIR}/${PROJECT_NAME}-config-version.cmake
+  VERSION ${PROJECT_VERSION}
+  COMPATIBILITY AnyNewerVersion)
+install(FILES ${CMAKE_BINARY_DIR}/${PROJECT_NAME}-config-version.cmake
+  DESTINATION ${CONFIG_INSTALL_DESTINATION})
+
+# crtm-targets.cmake and crtm-targets-<build-type>.cmake
+install(EXPORT ${PROJECT_NAME}Exports
+  NAMESPACE ${PROJECT_NAME}::
+  FILE ${PROJECT_NAME}-targets.cmake
+  DESTINATION ${CONFIG_INSTALL_DESTINATION})
